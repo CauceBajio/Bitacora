@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bitácora de Vehículo · Cauce Bajío</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#185FA5;--blue-light:#E6F1FB;--blue-dark:#0C447C;
+  --green:#3B6D11;--green-light:#EAF3DE;
+  --orange:#C55A11;--orange-light:#FCE4D6;
+  --danger:#A32D2D;--danger-light:#FCEBEB;
+  --gray:#888;--gray-light:#F5F5F5;--gray-border:#DDD;
+  --text:#1a1a1a;--text-muted:#666;--text-hint:#999;
+  --white:#FFF;--radius:10px;--radius-sm:6px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#F0F2F5;color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent}
+.screen{display:none;max-width:440px;margin:0 auto;padding:0 0 2rem}
+.screen.active{display:block}
+
+/* TOP BAR */
+.topbar{background:var(--blue);color:#fff;padding:.9rem 1rem;display:flex;align-items:center;gap:.75rem;position:sticky;top:0;z-index:100}
+.topbar h1{font-size:15px;font-weight:600;flex:1}
+.topbar .sub{font-size:11px;opacity:.75;display:block}
+.back-btn{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1;padding:0 4px 0 0}
+
+/* HOME */
+.home-hero{background:var(--blue);padding:1.5rem 1rem 2rem;text-align:center;color:#fff}
+.home-hero .logo{font-size:48px;margin-bottom:.5rem}
+.home-hero h2{font-size:20px;font-weight:700;margin-bottom:.25rem}
+.home-hero p{font-size:13px;opacity:.8}
+.home-body{padding:1rem;margin-top:-1rem}
+.home-card{background:var(--white);border-radius:var(--radius);padding:1.25rem;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:.75rem}
+.home-card p{font-size:13px;color:var(--text-muted);margin-bottom:.75rem}
+.count-badge{display:inline-block;background:var(--blue-light);color:var(--blue-dark);font-size:12px;font-weight:600;padding:2px 10px;border-radius:20px;margin-top:.5rem}
+
+/* BUTTONS */
+.btn{display:block;width:100%;padding:.8rem 1rem;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;border:none;text-align:center;transition:filter .15s}
+.btn+.btn{margin-top:.6rem}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:active{filter:brightness(.9)}
+.btn-secondary{background:var(--white);color:var(--blue);border:1.5px solid var(--blue)}
+.btn-secondary:active{background:var(--blue-light)}
+.btn-danger{background:var(--white);color:var(--danger);border:1.5px solid var(--danger)}
+.btn-sm{display:inline-block;width:auto;padding:.4rem .9rem;font-size:13px}
+.btn-ghost{background:none;border:none;color:var(--blue);font-size:14px;font-weight:600;cursor:pointer;padding:.4rem 0}
+
+/* FORM */
+.form-body{padding:1rem}
+.section-card{background:var(--white);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:.75rem}
+.section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--blue);margin-bottom:.75rem}
+.field{margin-bottom:.75rem}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:.3rem}
+input,select,textarea{width:100%;padding:.65rem .8rem;border:1.5px solid var(--gray-border);border-radius:var(--radius-sm);font-size:15px;font-family:inherit;background:#fff;color:var(--text);-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue)}
+textarea{resize:none;height:70px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.km-result{background:var(--blue-light);border-radius:var(--radius-sm);padding:.6rem .9rem;display:flex;justify-content:space-between;align-items:center;margin-top:.5rem}
+.km-result span{font-size:13px;color:var(--blue-dark)}
+.km-result strong{font-size:18px;font-weight:700;color:var(--blue)}
+
+/* GAS TOGGLE */
+.toggle-row{display:flex;gap:.5rem;margin-bottom:.75rem}
+.toggle-btn{flex:1;padding:.55rem;border-radius:var(--radius-sm);border:1.5px solid var(--gray-border);background:#fff;font-size:14px;font-weight:600;cursor:pointer;color:var(--text-muted);transition:all .15s}
+.toggle-btn.active-yes{background:var(--green);border-color:var(--green);color:#fff}
+.toggle-btn.active-no{background:var(--gray-light);border-color:var(--gray-border);color:var(--text-muted)}
+
+/* SIGNATURE */
+.sig-container{border:1.5px solid var(--gray-border);border-radius:var(--radius-sm);overflow:hidden;position:relative;background:#FAFAFA;touch-action:none}
+canvas#sig{display:block;width:100%;height:140px;cursor:crosshair}
+.sig-actions{display:flex;justify-content:space-between;align-items:center;padding:.4rem .75rem;background:var(--gray-light);border-top:1px solid var(--gray-border)}
+.sig-hint{font-size:11px;color:var(--text-hint)}
+.sig-clear-btn{font-size:12px;color:var(--danger);background:none;border:none;cursor:pointer;font-weight:600}
+
+/* ERROR / SUCCESS */
+.err-box{background:var(--danger-light);border:1px solid #F7C1C1;border-radius:var(--radius-sm);padding:.6rem .9rem;font-size:13px;color:var(--danger);margin-bottom:.75rem;display:none}
+.success-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;padding:2rem;text-align:center;gap:1rem}
+.success-icon{font-size:72px}
+.success-screen h2{font-size:22px;font-weight:700;color:var(--green)}
+.success-screen p{font-size:14px;color:var(--text-muted);max-width:260px}
+
+/* PIN */
+.pin-screen{display:flex;flex-direction:column;align-items:center;padding:2.5rem 1rem;gap:1rem}
+.pin-screen h2{font-size:18px;font-weight:700}
+.pin-screen p{font-size:13px;color:var(--text-muted)}
+.pin-dots{display:flex;gap:12px;margin:.5rem 0}
+.dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--gray-border);background:#fff;transition:all .15s}
+.dot.filled{background:var(--blue);border-color:var(--blue)}
+.numpad{display:grid;grid-template-columns:repeat(3,72px);gap:10px;margin-top:.5rem}
+.num-key{width:72px;height:72px;border-radius:50%;border:1.5px solid var(--gray-border);background:#fff;font-size:22px;font-weight:500;cursor:pointer;color:var(--text);transition:background .1s}
+.num-key:active{background:var(--blue-light)}
+.pin-err{font-size:13px;color:var(--danger);min-height:1.4em;font-weight:600}
+
+/* ADMIN */
+.tabs{display:flex;background:var(--white);border-bottom:1px solid var(--gray-border);position:sticky;top:54px;z-index:50}
+.tab{flex:1;padding:.7rem;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text-muted);border-bottom:3px solid transparent;transition:all .15s}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.admin-body{padding:1rem}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1rem}
+.stat{background:var(--white);border-radius:var(--radius);padding:1rem;box-shadow:0 1px 4px rgba(0,0,0,.07);text-align:center}
+.stat .num{font-size:22px;font-weight:700;color:var(--blue)}
+.stat .lbl{font-size:11px;color:var(--text-muted);margin-top:3px}
+.rec{background:var(--white);border-radius:var(--radius);padding:.9rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:.6rem}
+.rec-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.4rem}
+.rec-name{font-size:14px;font-weight:700}
+.rec-date{font-size:12px;color:var(--text-hint)}
+.rec-line{font-size:13px;color:var(--text-muted);margin-bottom:2px;display:flex;gap:5px;align-items:flex-start}
+.rec-line span{color:var(--text)}
+.chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;margin-left:4px}
+.chip-gas{background:var(--green-light);color:var(--green)}
+.chip-km{background:var(--blue-light);color:var(--blue-dark)}
+.sig-img{height:36px;width:90px;object-fit:contain;border:1px solid var(--gray-border);border-radius:4px;margin-top:.4rem}
+.empty{text-align:center;padding:3rem 1rem;color:var(--text-hint);font-size:14px}
+.export-card{background:var(--white);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:.75rem}
+.export-card p{font-size:13px;color:var(--text-muted);margin-bottom:.75rem}
+</style>
+</head>
+<body>
+
+<!-- ══ HOME ══════════════════════════════════════════════════════════════ -->
+<div id="s-home" class="screen active">
+  <div class="home-hero">
+    <div class="logo">🚛</div>
+    <h2>Bitácora de Vehículo</h2>
+    <p>Cauce Bajío · RAM 1200 Tradesman 2026</p>
+  </div>
+  <div class="home-body">
+    <div class="home-card">
+      <p>Registra cada salida con tu nombre, destino, kilómetros y — si cargaste gasolina — el ticket correspondiente.</p>
+      <button class="btn btn-primary" onclick="go('s-form')">＋ Registrar nueva salida</button>
+    </div>
+    <div class="home-card">
+      <p>Acceso restringido para revisión de registros y exportación de reembolsos.</p>
+      <button class="btn btn-secondary" onclick="go('s-pin')">🔒 Acceso administrador</button>
+      <div style="margin-top:.75rem">
+        <span class="count-badge" id="home-count">0 registros guardados</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FORM ═══════════════════════════════════════════════════════════════ -->
+<div id="s-form" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('s-home')">‹</button>
+    <div><h1>Nueva salida <span class="sub">Completa todos los campos</span></h1></div>
+  </div>
+  <div class="form-body">
+
+    <div class="section-card">
+      <div class="section-title">Datos del conductor</div>
+      <div class="field">
+        <label>Conductor *</label>
+        <input type="text" id="f-conductor" placeholder="Nombre completo" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>Área / Proyecto *</label>
+        <input type="text" id="f-area" placeholder="Ej. Proyecto Río Lerma">
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">Detalles del traslado</div>
+      <div class="field">
+        <label>Destino *</label>
+        <input type="text" id="f-destino" placeholder="Municipio o lugar">
+      </div>
+      <div class="field">
+        <label>Motivo *</label>
+        <select id="f-motivo">
+          <option value="">— Seleccionar —</option>
+          <option>Visita a campo</option>
+          <option>Compras / Materiales</option>
+          <option>Traslado de personal</option>
+          <option>Reunión institucional</option>
+          <option>Gestión administrativa</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div class="row2 field">
+        <div>
+          <label>Km inicial *</label>
+          <input type="number" id="f-km-ini" placeholder="0" inputmode="numeric" oninput="calcKm()">
+        </div>
+        <div>
+          <label>Km final *</label>
+          <input type="number" id="f-km-fin" placeholder="0" inputmode="numeric" oninput="calcKm()">
+        </div>
+      </div>
+      <div class="km-result">
+        <span>Km recorridos</span>
+        <strong id="km-calc">—</strong>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">¿Cargaste gasolina?</div>
+      <div class="toggle-row">
+        <button class="toggle-btn" id="btn-si" onclick="toggleGas(true)">✓ Sí cargué</button>
+        <button class="toggle-btn active-no" id="btn-no" onclick="toggleGas(false)">✗ No cargué</button>
+      </div>
+      <div id="gas-fields" style="display:none">
+        <div class="row2 field">
+          <div>
+            <label>Litros *</label>
+            <input type="number" id="f-litros" placeholder="0.0" step="0.1" inputmode="decimal">
+          </div>
+          <div>
+            <label>Costo total $ *</label>
+            <input type="number" id="f-costo" placeholder="0.00" step="0.01" inputmode="decimal">
+          </div>
+        </div>
+        <div class="field">
+          <label>N° Ticket / Factura *</label>
+          <input type="text" id="f-ticket" placeholder="Ej. 0045 o FA-2026-001">
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">Observaciones</div>
+      <div class="field">
+        <textarea id="f-obs" placeholder="Incidencias, comentarios adicionales… (opcional)"></textarea>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">Firma del conductor *</div>
+      <div class="sig-container">
+        <canvas id="sig" width="800" height="280"></canvas>
+        <div class="sig-actions">
+          <span class="sig-hint">✍ Firma con el dedo</span>
+          <button class="sig-clear-btn" onclick="clearSig()">Borrar firma</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="err-box" id="form-err"></div>
+    <button class="btn btn-primary" onclick="saveRecord()">Guardar registro ✓</button>
+    <button class="btn btn-ghost" style="text-align:center;margin-top:.5rem" onclick="go('s-home')">Cancelar</button>
+  </div>
+</div>
+
+<!-- ══ SUCCESS ════════════════════════════════════════════════════════════ -->
+<div id="s-success" class="screen">
+  <div class="success-screen">
+    <div class="success-icon">✅</div>
+    <h2>Registro guardado</h2>
+    <p>El traslado quedó registrado en la bitácora correctamente.</p>
+    <button class="btn btn-primary btn-sm" onclick="go('s-home')">Listo</button>
+  </div>
+</div>
+
+<!-- ══ PIN ════════════════════════════════════════════════════════════════ -->
+<div id="s-pin" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('s-home');resetPin()">‹</button>
+    <h1>Acceso administrador</h1>
+  </div>
+  <div class="pin-screen">
+    <h2>Ingresa el PIN</h2>
+    <p>Solo para personal de administración</p>
+    <div class="pin-dots">
+      <div class="dot" id="d0"></div>
+      <div class="dot" id="d1"></div>
+      <div class="dot" id="d2"></div>
+      <div class="dot" id="d3"></div>
+    </div>
+    <div class="numpad">
+      <button class="num-key" onclick="pinKey('1')">1</button>
+      <button class="num-key" onclick="pinKey('2')">2</button>
+      <button class="num-key" onclick="pinKey('3')">3</button>
+      <button class="num-key" onclick="pinKey('4')">4</button>
+      <button class="num-key" onclick="pinKey('5')">5</button>
+      <button class="num-key" onclick="pinKey('6')">6</button>
+      <button class="num-key" onclick="pinKey('7')">7</button>
+      <button class="num-key" onclick="pinKey('8')">8</button>
+      <button class="num-key" onclick="pinKey('9')">9</button>
+      <button class="num-key" onclick="pinKey('back')" style="font-size:18px">⌫</button>
+      <button class="num-key" onclick="pinKey('0')">0</button>
+      <button class="num-key" onclick="go('s-home');resetPin()" style="font-size:16px;color:var(--text-muted)">✕</button>
+    </div>
+    <p class="pin-err" id="pin-err"></p>
+    <p style="font-size:11px;color:var(--text-hint);margin-top:.5rem">PIN por defecto: 1234<br>Cámbialo editando el archivo HTML</p>
+  </div>
+</div>
+
+<!-- ══ ADMIN ══════════════════════════════════════════════════════════════ -->
+<div id="s-admin" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('s-home');resetPin()">‹</button>
+    <h1>Administrador <span class="sub">Vista de registros</span></h1>
+  </div>
+  <div class="tabs">
+    <button class="tab active" id="tab-resumen" onclick="showTab('resumen')">Resumen</button>
+    <button class="tab" id="tab-registros" onclick="showTab('registros')">Registros</button>
+  </div>
+
+  <div id="panel-resumen" class="admin-body">
+    <div class="stat-grid" id="stats-grid"></div>
+    <div class="export-card">
+      <div class="section-title" style="margin-bottom:.5rem">Exportar para reembolso</div>
+      <p>Descarga la tabla de registros en formato CSV para cotejar contra los tickets de gasolina.</p>
+      <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇ Descargar CSV</button>
+    </div>
+    <button class="btn btn-danger" onclick="clearAll()">🗑 Limpiar todos los registros</button>
+  </div>
+
+  <div id="panel-registros" class="admin-body" style="display:none">
+    <div id="rec-list"></div>
+  </div>
+</div>
+
+<script>
+var PIN = '1234'; // ← Cambia este valor por el PIN que prefieras
+var records = [];
+var gasOn = false;
+var pinVal = '';
+var sigCanvas, sigCtx, signing = false;
+
+try { var s = localStorage.getItem('cb_bitacora'); if(s) records = JSON.parse(s); } catch(e){}
+
+function persist() { try { localStorage.setItem('cb_bitacora', JSON.stringify(records)); } catch(e){} }
+
+function go(id) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if(id === 's-home') {
+    var n = records.length;
+    document.getElementById('home-count').textContent = n + ' registro' + (n===1?'':'s') + ' guardado' + (n===1?'':'s');
+  }
+  if(id === 's-form') { resetForm(); initSig(); }
+  if(id === 's-admin') renderAdmin();
+}
+
+function calcKm() {
+  var a = parseFloat(document.getElementById('f-km-ini').value) || 0;
+  var b = parseFloat(document.getElementById('f-km-fin').value) || 0;
+  document.getElementById('km-calc').textContent = (b > a) ? (b - a) + ' km' : '—';
+}
+
+function toggleGas(on) {
+  gasOn = on;
+  document.getElementById('gas-fields').style.display = on ? 'block' : 'none';
+  document.getElementById('btn-si').className = 'toggle-btn' + (on ? ' active-yes' : '');
+  document.getElementById('btn-no').className = 'toggle-btn' + (!on ? ' active-no' : '');
+}
+
+function initSig() {
+  sigCanvas = document.getElementById('sig');
+  sigCtx = sigCanvas.getContext('2d');
+  sigCtx.strokeStyle = '#1a1a1a';
+  sigCtx.lineWidth = 2.5;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+  function pos(e) {
+    var r = sigCanvas.getBoundingClientRect();
+    var src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - r.left) * (sigCanvas.width / r.width), y: (src.clientY - r.top) * (sigCanvas.height / r.height) };
+  }
+  sigCanvas.onmousedown = function(e){ signing=true; var p=pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); };
+  sigCanvas.onmousemove = function(e){ if(!signing) return; var p=pos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); };
+  sigCanvas.onmouseup = function(){ signing=false; };
+  sigCanvas.ontouchstart = function(e){ e.preventDefault(); signing=true; var p=pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); };
+  sigCanvas.ontouchmove = function(e){ e.preventDefault(); if(!signing) return; var p=pos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); };
+  sigCanvas.ontouchend = function(){ signing=false; };
+}
+
+function clearSig() { if(sigCtx) sigCtx.clearRect(0,0,sigCanvas.width,sigCanvas.height); }
+
+function sigEmpty() {
+  if(!sigCanvas) return true;
+  var d = sigCtx.getImageData(0,0,sigCanvas.width,sigCanvas.height).data;
+  for(var i=3;i<d.length;i+=4) if(d[i]>10) return false;
+  return true;
+}
+
+function showErr(msg) {
+  var el = document.getElementById('form-err');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(function(){ el.style.display='none'; }, 4000);
+}
+
+function resetForm() {
+  ['f-conductor','f-area','f-destino','f-km-ini','f-km-fin','f-obs','f-litros','f-costo','f-ticket'].forEach(function(id){
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-motivo').value = '';
+  document.getElementById('km-calc').textContent = '—';
+  toggleGas(false);
+  if(sigCtx) clearSig();
+}
+
+function saveRecord() {
+  var c = document.getElementById('f-conductor').value.trim();
+  var area = document.getElementById('f-area').value.trim();
+  var dest = document.getElementById('f-destino').value.trim();
+  var mot = document.getElementById('f-motivo').value;
+  var kmi = document.getElementById('f-km-ini').value;
+  var kmf = document.getElementById('f-km-fin').value;
+  if(!c || !dest || !mot || !kmi || !kmf) { showErr('⚠ Completa todos los campos obligatorios (*)'); return; }
+  if(parseFloat(kmf) <= parseFloat(kmi)) { showErr('⚠ El km final debe ser mayor al km inicial'); return; }
+  if(gasOn) {
+    var lit = document.getElementById('f-litros').value;
+    var cos = document.getElementById('f-costo').value;
+    var tkt = document.getElementById('f-ticket').value.trim();
+    if(!lit || !cos || !tkt) { showErr('⚠ Completa los datos de gasolina o selecciona "No cargué"'); return; }
+  }
+  if(sigEmpty()) { showErr('⚠ Agrega tu firma antes de guardar'); return; }
+
+  var rec = {
+    id: Date.now(),
+    fecha: new Date().toLocaleDateString('es-MX', {day:'2-digit',month:'2-digit',year:'numeric'}),
+    hora: new Date().toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit'}),
+    conductor: c,
+    area: area,
+    destino: dest,
+    motivo: mot,
+    kmIni: parseFloat(kmi),
+    kmFin: parseFloat(kmf),
+    kmRec: parseFloat(kmf) - parseFloat(kmi),
+    gas: gasOn ? {
+      litros: parseFloat(document.getElementById('f-litros').value),
+      costo: parseFloat(document.getElementById('f-costo').value),
+      ticket: document.getElementById('f-ticket').value.trim()
+    } : null,
+    obs: document.getElementById('f-obs').value.trim(),
+    firma: sigCanvas.toDataURL('image/png')
+  };
+  records.push(rec);
+  persist();
+  go('s-success');
+}
+
+function resetPin() { pinVal = ''; for(var i=0;i<4;i++) document.getElementById('d'+i).className='dot'; document.getElementById('pin-err').textContent=''; }
+
+function pinKey(k) {
+  if(k === 'back') { pinVal = pinVal.slice(0,-1); }
+  else if(pinVal.length < 4) { pinVal += k; }
+  for(var i=0;i<4;i++) document.getElementById('d'+i).className = 'dot' + (i < pinVal.length ? ' filled' : '');
+  document.getElementById('pin-err').textContent = '';
+  if(pinVal.length === 4) {
+    if(pinVal === PIN) { go('s-admin'); resetPin(); }
+    else {
+      document.getElementById('pin-err').textContent = 'PIN incorrecto, intenta de nuevo';
+      pinVal = '';
+      setTimeout(function(){ for(var i=0;i<4;i++) document.getElementById('d'+i).className='dot'; }, 400);
+    }
+  }
+}
+
+function showTab(t) {
+  document.getElementById('panel-resumen').style.display = t==='resumen' ? 'block' : 'none';
+  document.getElementById('panel-registros').style.display = t==='registros' ? 'block' : 'none';
+  document.getElementById('tab-resumen').className = 'tab' + (t==='resumen' ? ' active' : '');
+  document.getElementById('tab-registros').className = 'tab' + (t==='registros' ? ' active' : '');
+  if(t === 'registros') renderRecords();
+}
+
+function renderAdmin() {
+  var kmT = records.reduce(function(a,r){ return a+r.kmRec; }, 0);
+  var gasR = records.filter(function(r){ return r.gas; });
+  var litT = gasR.reduce(function(a,r){ return a+r.gas.litros; }, 0);
+  var cosT = gasR.reduce(function(a,r){ return a+r.gas.costo; }, 0);
+  document.getElementById('stats-grid').innerHTML =
+    stat(records.length, 'Registros totales') +
+    stat(kmT.toFixed(0)+' km', 'Km recorridos') +
+    stat(litT.toFixed(1)+' L', 'Litros cargados') +
+    stat('$'+cosT.toFixed(2), 'Total reembolso');
+}
+
+function stat(num, lbl) {
+  return '<div class="stat"><div class="num">'+num+'</div><div class="lbl">'+lbl+'</div></div>';
+}
+
+function renderRecords() {
+  var el = document.getElementById('rec-list');
+  if(!records.length) { el.innerHTML = '<div class="empty">Sin registros aún</div>'; return; }
+  var html = '';
+  var sorted = records.slice().reverse();
+  sorted.forEach(function(r) {
+    html += '<div class="rec">' +
+      '<div class="rec-head"><span class="rec-name">'+r.conductor+'</span><span class="rec-date">'+r.fecha+' '+r.hora+'</span></div>' +
+      '<div class="rec-line">📍 <span>'+r.destino+'</span> <span class="chip chip-km">'+r.kmRec+' km</span>'+(r.gas?'<span class="chip chip-gas">$'+r.gas.costo.toFixed(2)+'</span>':'')+'</div>' +
+      '<div class="rec-line">📋 <span>'+r.motivo+(r.area?' · '+r.area:'')+'</span></div>' +
+      (r.gas ? '<div class="rec-line">⛽ <span>'+r.gas.litros+'L · Ticket: '+r.gas.ticket+'</span></div>' : '') +
+      (r.obs ? '<div class="rec-line">💬 <span>'+r.obs+'</span></div>' : '') +
+      '<img src="'+r.firma+'" class="sig-img" alt="Firma de '+r.conductor+'">' +
+      '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function exportCSV() {
+  if(!records.length) { alert('No hay registros para exportar.'); return; }
+  var rows = [['N°','Fecha','Hora','Conductor','Área/Proyecto','Destino','Motivo','Km Inicial','Km Final','Km Recorridos','Litros','Costo ($)','N° Ticket/Factura','Observaciones']];
+  records.forEach(function(r, i) {
+    rows.push([i+1, r.fecha, r.hora, r.conductor, r.area, r.destino, r.motivo, r.kmIni, r.kmFin, r.kmRec,
+      r.gas ? r.gas.litros : '', r.gas ? r.gas.costo : '', r.gas ? r.gas.ticket : '', r.obs]);
+  });
+  var csv = rows.map(function(r){ return r.map(function(c){ return '"'+(String(c)).replace(/"/g,'""')+'"'; }).join(','); }).join('\r\n');
+  var blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bitacora_cauce_bajio_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+function clearAll() {
+  if(confirm('¿Eliminar TODOS los registros?\n\nEsta acción no se puede deshacer. Se recomienda exportar el CSV primero.')) {
+    records = []; persist(); renderAdmin();
+    document.getElementById('rec-list').innerHTML = '';
+  }
+}
+</script>
+</body>
+</html>
