@@ -94,9 +94,20 @@ canvas#sig{display:block;width:100%;height:140px;cursor:crosshair}
 .chip-gas{background:var(--green-light);color:var(--green)}
 .chip-km{background:var(--blue-light);color:var(--blue-dark)}
 .sig-img{height:36px;width:90px;object-fit:contain;border:1px solid var(--gray-border);border-radius:4px;margin-top:.4rem}
+.ticket-img{max-width:100%;max-height:160px;object-fit:contain;border:1px solid var(--gray-border);border-radius:var(--radius-sm);margin-top:.5rem;display:block}
 .empty{text-align:center;padding:3rem 1rem;color:var(--text-hint);font-size:14px}
 .export-card{background:var(--white);border-radius:var(--radius);padding:1rem 1.25rem;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:.75rem}
 .export-card p{font-size:13px;color:var(--text-muted);margin-bottom:.75rem}
+
+/* Foto ticket */
+.foto-upload-area{border:2px dashed var(--gray-border);border-radius:var(--radius-sm);padding:1.25rem;text-align:center;cursor:pointer;transition:border-color .15s;background:#FAFAFA;margin-top:.5rem}
+.foto-upload-area:hover{border-color:var(--blue)}
+.foto-upload-area p{font-size:13px;color:var(--text-hint);margin-top:.35rem}
+.foto-upload-area .icon{font-size:28px}
+.foto-preview-wrap{position:relative;margin-top:.5rem}
+.foto-preview-wrap img{max-width:100%;border-radius:var(--radius-sm);border:1px solid var(--gray-border);display:block}
+.foto-remove-btn{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+input[type="file"]{display:none}
 </style>
 </head>
 <body>
@@ -141,6 +152,7 @@ canvas#sig{display:block;width:100%;height:140px;cursor:crosshair}
         <input type="text" id="f-area" placeholder="Ej. Proyecto Río Lerma">
       </div>
     </div>
+
     <div class="section-card">
       <div class="section-title">Detalles del traslado</div>
       <div class="field">
@@ -149,15 +161,19 @@ canvas#sig{display:block;width:100%;height:140px;cursor:crosshair}
       </div>
       <div class="field">
         <label>Motivo *</label>
-        <select id="f-motivo">
+        <select id="f-motivo" onchange="toggleOtroMotivo()">
           <option value="">— Seleccionar —</option>
           <option>Visita a campo</option>
           <option>Compras / Materiales</option>
           <option>Traslado de personal</option>
           <option>Reunión institucional</option>
           <option>Gestión administrativa</option>
-          <option>Otro</option>
+          <option value="Otro">Otro</option>
         </select>
+      </div>
+      <div class="field" id="otro-motivo-field" style="display:none">
+        <label>Especifica el motivo *</label>
+        <input type="text" id="f-motivo-otro" placeholder="Describe el motivo del traslado">
       </div>
       <div class="row2 field">
         <div>
@@ -174,6 +190,7 @@ canvas#sig{display:block;width:100%;height:140px;cursor:crosshair}
         <strong id="km-calc">—</strong>
       </div>
     </div>
+
     <div class="section-card">
       <div class="section-title">¿Cargaste gasolina?</div>
       <div class="toggle-row">
@@ -195,14 +212,28 @@ canvas#sig{display:block;width:100%;height:140px;cursor:crosshair}
           <label>N° Ticket / Factura *</label>
           <input type="text" id="f-ticket" placeholder="Ej. 0045 o FA-2026-001">
         </div>
+        <div class="field">
+          <label>Foto del ticket</label>
+          <input type="file" id="f-foto-ticket" accept="image/*" capture="environment" onchange="previewFoto(this)">
+          <div id="foto-upload-area" class="foto-upload-area" onclick="document.getElementById('f-foto-ticket').click()">
+            <div class="icon">📷</div>
+            <p>Toca para tomar foto o seleccionar imagen</p>
+          </div>
+          <div id="foto-preview-wrap" class="foto-preview-wrap" style="display:none">
+            <img id="foto-preview" src="" alt="Foto del ticket">
+            <button class="foto-remove-btn" onclick="removeFoto()" title="Eliminar foto">✕</button>
+          </div>
+        </div>
       </div>
     </div>
+
     <div class="section-card">
       <div class="section-title">Observaciones</div>
       <div class="field">
         <textarea id="f-obs" placeholder="Incidencias, comentarios adicionales… (opcional)"></textarea>
       </div>
     </div>
+
     <div class="section-card">
       <div class="section-title">Firma del conductor *</div>
       <div class="sig-container">
@@ -213,6 +244,7 @@ canvas#sig{display:block;width:100%;height:140px;cursor:crosshair}
         </div>
       </div>
     </div>
+
     <div class="err-box" id="form-err"></div>
     <button class="btn btn-primary" onclick="saveRecord()">Guardar registro ✓</button>
     <button class="btn btn-ghost" style="text-align:center;margin-top:.5rem" onclick="go('s-home')">Cancelar</button>
@@ -288,17 +320,17 @@ canvas#sig{display:block;width:100%;height:140px;cursor:crosshair}
 </div>
 
 <script>
-var PIN = '1234'; // ← Cambia este valor por el PIN que prefieras
+var PIN = '1234';
 var records = [];
 var gasOn = false;
 var pinVal = '';
 var sigCanvas, sigCtx, signing = false;
+var fotoBase64 = null;
 var STORAGE_KEY = 'cb_bitacora';
 
 function loadLocal() {
   try { var s = localStorage.getItem(STORAGE_KEY); if(s) records = JSON.parse(s); } catch(e) {}
 }
-
 async function loadPersistent() {
   try {
     var r = await window.storage.get(STORAGE_KEY);
@@ -308,18 +340,15 @@ async function loadPersistent() {
     }
   } catch(e) {}
 }
-
 function persist() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch(e) {}
   try { window.storage.set(STORAGE_KEY, JSON.stringify(records)); } catch(e) {}
 }
-
 function updateHomeCount() {
   var n = records.length;
   var el = document.getElementById('home-count');
   if(el) el.textContent = n + ' registro' + (n===1?'':'s') + ' guardado' + (n===1?'':'s');
 }
-
 loadLocal(); updateHomeCount(); loadPersistent();
 
 function go(id) {
@@ -329,6 +358,12 @@ function go(id) {
   if(id==='s-home') updateHomeCount();
   if(id==='s-form') { resetForm(); initSig(); }
   if(id==='s-admin') renderAdmin();
+}
+
+function toggleOtroMotivo() {
+  var sel = document.getElementById('f-motivo').value;
+  document.getElementById('otro-motivo-field').style.display = (sel === 'Otro') ? 'block' : 'none';
+  if(sel !== 'Otro') document.getElementById('f-motivo-otro').value = '';
 }
 
 function calcKm() {
@@ -342,6 +377,28 @@ function toggleGas(on) {
   document.getElementById('gas-fields').style.display = on ? 'block' : 'none';
   document.getElementById('btn-si').className = 'toggle-btn'+(on?' active-yes':'');
   document.getElementById('btn-no').className = 'toggle-btn'+(!on?' active-no':'');
+  if(!on) { removeFoto(); }
+}
+
+function previewFoto(input) {
+  if(!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    fotoBase64 = e.target.result;
+    document.getElementById('foto-preview').src = fotoBase64;
+    document.getElementById('foto-upload-area').style.display = 'none';
+    document.getElementById('foto-preview-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeFoto() {
+  fotoBase64 = null;
+  document.getElementById('f-foto-ticket').value = '';
+  document.getElementById('foto-preview').src = '';
+  document.getElementById('foto-upload-area').style.display = 'block';
+  document.getElementById('foto-preview-wrap').style.display = 'none';
 }
 
 function initSig() {
@@ -376,20 +433,26 @@ function showErr(msg) {
 }
 
 function resetForm() {
-  ['f-conductor','f-area','f-destino','f-km-ini','f-km-fin','f-obs','f-litros','f-costo','f-ticket'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['f-conductor','f-area','f-destino','f-km-ini','f-km-fin','f-obs','f-litros','f-costo','f-ticket','f-motivo-otro'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('f-motivo').value = '';
+  document.getElementById('otro-motivo-field').style.display = 'none';
   document.getElementById('km-calc').textContent = '—';
-  toggleGas(false); if(sigCtx) clearSig();
+  toggleGas(false);
+  removeFoto();
+  if(sigCtx) clearSig();
 }
 
 function saveRecord() {
   var c = document.getElementById('f-conductor').value.trim();
   var area = document.getElementById('f-area').value.trim();
   var dest = document.getElementById('f-destino').value.trim();
-  var mot = document.getElementById('f-motivo').value;
+  var motSel = document.getElementById('f-motivo').value;
+  var motOtro = document.getElementById('f-motivo-otro').value.trim();
+  var mot = (motSel === 'Otro') ? motOtro : motSel;
   var kmi = document.getElementById('f-km-ini').value;
   var kmf = document.getElementById('f-km-fin').value;
-  if(!c||!dest||!mot||!kmi||!kmf) { showErr('⚠ Completa todos los campos obligatorios (*)'); return; }
+  if(!c||!dest||!motSel||!kmi||!kmf) { showErr('⚠ Completa todos los campos obligatorios (*)'); return; }
+  if(motSel === 'Otro' && !motOtro) { showErr('⚠ Especifica el motivo del traslado'); return; }
   if(parseFloat(kmf)<=parseFloat(kmi)) { showErr('⚠ El km final debe ser mayor al km inicial'); return; }
   if(gasOn) {
     var lit=document.getElementById('f-litros').value, cos=document.getElementById('f-costo').value, tkt=document.getElementById('f-ticket').value.trim();
@@ -402,7 +465,12 @@ function saveRecord() {
     hora: new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),
     conductor:c, area:area, destino:dest, motivo:mot,
     kmIni:parseFloat(kmi), kmFin:parseFloat(kmf), kmRec:parseFloat(kmf)-parseFloat(kmi),
-    gas: gasOn ? { litros:parseFloat(document.getElementById('f-litros').value), costo:parseFloat(document.getElementById('f-costo').value), ticket:document.getElementById('f-ticket').value.trim() } : null,
+    gas: gasOn ? {
+      litros:parseFloat(document.getElementById('f-litros').value),
+      costo:parseFloat(document.getElementById('f-costo').value),
+      ticket:document.getElementById('f-ticket').value.trim(),
+      foto: fotoBase64 || null
+    } : null,
     obs: document.getElementById('f-obs').value.trim(),
     firma: sigCanvas.toDataURL('image/png')
   };
@@ -443,22 +511,29 @@ function stat(num,lbl){ return '<div class="stat"><div class="num">'+num+'</div>
 function renderRecords() {
   var el=document.getElementById('rec-list');
   if(!records.length){ el.innerHTML='<div class="empty">Sin registros aún</div>'; return; }
-  var html=''; records.slice().reverse().forEach(function(r){
+  var html='';
+  records.slice().reverse().forEach(function(r){
     html+='<div class="rec">'+
       '<div class="rec-head"><span class="rec-name">'+r.conductor+'</span><span class="rec-date">'+r.fecha+' '+r.hora+'</span></div>'+
       '<div class="rec-line">📍 <span>'+r.destino+'</span> <span class="chip chip-km">'+r.kmRec+' km</span>'+(r.gas?'<span class="chip chip-gas">$'+r.gas.costo.toFixed(2)+'</span>':'')+'</div>'+
       '<div class="rec-line">📋 <span>'+r.motivo+(r.area?' · '+r.area:'')+'</span></div>'+
       (r.gas?'<div class="rec-line">⛽ <span>'+r.gas.litros+'L · Ticket: '+r.gas.ticket+'</span></div>':'')+
+      (r.gas && r.gas.foto?'<img src="'+r.gas.foto+'" class="ticket-img" alt="Foto ticket">':'')+
       (r.obs?'<div class="rec-line">💬 <span>'+r.obs+'</span></div>':'')+
       '<img src="'+r.firma+'" class="sig-img" alt="Firma">'+
       '</div>';
-  }); el.innerHTML=html;
+  });
+  el.innerHTML=html;
 }
 
 function exportCSV() {
   if(!records.length){ alert('No hay registros para exportar.'); return; }
-  var rows=[['N°','Fecha','Hora','Conductor','Área/Proyecto','Destino','Motivo','Km Inicial','Km Final','Km Recorridos','Litros','Costo ($)','N° Ticket/Factura','Observaciones']];
-  records.forEach(function(r,i){ rows.push([i+1,r.fecha,r.hora,r.conductor,r.area,r.destino,r.motivo,r.kmIni,r.kmFin,r.kmRec,r.gas?r.gas.litros:'',r.gas?r.gas.costo:'',r.gas?r.gas.ticket:'',r.obs]); });
+  var rows=[['N°','Fecha','Hora','Conductor','Área/Proyecto','Destino','Motivo','Km Inicial','Km Final','Km Recorridos','Litros','Costo ($)','N° Ticket/Factura','Foto ticket','Observaciones']];
+  records.forEach(function(r,i){
+    rows.push([i+1,r.fecha,r.hora,r.conductor,r.area,r.destino,r.motivo,r.kmIni,r.kmFin,r.kmRec,
+      r.gas?r.gas.litros:'', r.gas?r.gas.costo:'', r.gas?r.gas.ticket:'',
+      r.gas&&r.gas.foto?'Sí':'No', r.obs]);
+  });
   var csv=rows.map(function(r){ return r.map(function(c){ return '"'+(String(c)).replace(/"/g,'""')+'"'; }).join(','); }).join('\r\n');
   var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
   a.download='bitacora_cauce_bajio_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
